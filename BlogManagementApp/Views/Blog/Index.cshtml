@@ -1,0 +1,41 @@
+﻿@model List<BlogManagementApp.Models.BlogPost>
+
+@{
+    ViewData["Title"] = "Tüm Bloglar";
+}
+
+<h2 class="mb-4">Blog Yazıları</h2>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info">Henüz hiç blog yazısı eklenmemiş.</div>
+}
+else
+{
+    <div class="row row-cols-1 row-cols-md-2 g-4">
+        @foreach (var blog in Model)
+        {
+            <div class="col">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">@blog.Title</h5>
+                        <p class="card-text text-muted">
+                            Kategori: <strong>@blog.Category?.Name</strong><br />
+                            Yazar: <strong>@blog.User?.UserName</strong><br />
+                            Tarih: <strong>@blog.PublishedDate.ToShortDateString()</strong>
+                        </p>
+                        <p class="card-text">@blog.Content.Substring(0, Math.Min(blog.Content.Length, 150))...</p>
+
+                        <a asp-action="Details" asp-route-id="@blog.Id" class="btn btn-outline-primary mt-2">Detaylar</a>
+                        <a asp-action="Edit" asp-route-id="@blog.Id" class="btn btn-warning btn-sm mt-2">Düzenle</a>
+                        <a asp-action="Delete" asp-route-id="@blog.Id" class="btn btn-danger btn-sm mt-1">Sil</a>
+
+                    </div>
+
+                </div>
+            </div>
+           
+
+        }
+    </div>
+}

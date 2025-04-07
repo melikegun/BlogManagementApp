@@ -1,0 +1,25 @@
+﻿@model List<BlogManagementApp.Models.Category>
+
+@{
+    ViewData["Title"] = "Kategoriler";
+}
+
+<h2>Kategori Listesi</h2>
+
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Adı</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.Name</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<a asp-action="Create" class="btn btn-primary">Yeni Kategori Ekle</a>

@@ -1,0 +1,45 @@
+﻿@model BlogManagementApp.Models.BlogPost
+
+@{
+    ViewData["Title"] = "Blog Düzenle";
+}
+
+<h2>Blog Yazısını Düzenle</h2>
+
+<form asp-action="Edit" method="post" enctype="multipart/form-data">
+    <input type="hidden" asp-for="Id" />
+
+    <div class="mb-3">
+        <label asp-for="Title" class="form-label"></label>
+        <input asp-for="Title" class="form-control" />
+        <span asp-validation-for="Title" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Content" class="form-label"></label>
+        <textarea asp-for="Content" class="form-control" rows="6"></textarea>
+        <span asp-validation-for="Content" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="CategoryId" class="form-label">Kategori</label>
+        <select asp-for="CategoryId" asp-items="ViewBag.Categories" class="form-select"></select>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Görsel</label><br />
+        @if (!string.IsNullOrEmpty(Model.ImageUrl))
+        {
+            <img src="@Model.ImageUrl" class="img-thumbnail mb-2" style="max-height: 150px;" />
+
+            <br />
+        }
+        <input type="file" name="Image" class="form-control" />
+    </div>
+
+    <button type="submit" class="btn btn-primary">Kaydet</button>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
