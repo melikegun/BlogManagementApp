@@ -1,41 +1,85 @@
-﻿@model List<BlogManagementApp.Models.BlogPost>
+﻿@model BlogHomeViewModel
+@using Microsoft.AspNetCore.Identity
+@inject UserManager<User> UserManager
 
-@{
-    ViewData["Title"] = "Tüm Bloglar";
-}
+<h2 class="mb-4">Bloglar</h2>
 
-<h2 class="mb-4">Blog Yazıları</h2>
-
-@if (!Model.Any())
-{
-    <div class="alert alert-info">Henüz hiç blog yazısı eklenmemiş.</div>
-}
-else
-{
-    <div class="row row-cols-1 row-cols-md-2 g-4">
-        @foreach (var blog in Model)
+<!-- Kategori Filtreleme -->
+<form method="get" asp-action="Index" class="mb-4 d-flex align-items-center">
+    <select name="categoryId" class="form-select me-2 w-auto">
+        <option value="">Tüm Kategoriler</option>
+        @foreach (var category in Model.Categories)
         {
-            <div class="col">
-                <div class="card h-100 shadow-sm">
-                    <div class="card-body">
-                        <h5 class="card-title">@blog.Title</h5>
-                        <p class="card-text text-muted">
-                            Kategori: <strong>@blog.Category?.Name</strong><br />
-                            Yazar: <strong>@blog.User?.UserName</strong><br />
-                            Tarih: <strong>@blog.PublishedDate.ToShortDateString()</strong>
-                        </p>
-                        <p class="card-text">@blog.Content.Substring(0, Math.Min(blog.Content.Length, 150))...</p>
+            <option value="@category.Id" selected="@(Model.SelectedCategoryId == category.Id)">
+                @category.Name
+            </option>
+        }
+    </select>
+    <button type="submit" class="btn btn-primary">Filtrele</button>
+</form>
 
-                        <a asp-action="Details" asp-route-id="@blog.Id" class="btn btn-outline-primary mt-2">Detaylar</a>
-                        <a asp-action="Edit" asp-route-id="@blog.Id" class="btn btn-warning btn-sm mt-2">Düzenle</a>
-                        <a asp-action="Delete" asp-route-id="@blog.Id" class="btn btn-danger btn-sm mt-1">Sil</a>
+<!-- Blog Kartları -->
+<div class="row">
+    @foreach (var blog in Model.BlogPosts)
+    {
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                @if (!string.IsNullOrEmpty(blog.ImageUrl))
+                {
+                    <img src="@blog.ImageUrl" class="card-img-top" style="height: 200px; object-fit: cover;" />
+                }
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title">@blog.Title</h5>
+                    <p class="card-text">@blog.Content.Substring(0, Math.Min(blog.Content.Length, 100))...</p>
+                    <span class="badge bg-secondary mb-2">@blog.Category?.Name</span>
 
+                    <small class="text-muted">Yazar: @blog.User?.UserName</small>
+
+                    <div class="mt-auto d-flex justify-content-between align-items-center">
+                        <a asp-action="Details" asp-route-id="@blog.Id" class="btn btn-sm btn-outline-primary">Oku</a>
+
+                        @if (User.Identity.IsAuthenticated)
+                        {
+                            var userId = UserManager.GetUserId(User);
+                            var isOwner = blog.UserId == userId;
+                            var isAdmin = User.IsInRole("Admin");
+
+                            if (isOwner || isAdmin)
+                            {
+                                <a asp-action="Edit" asp-route-id="@blog.Id" class="btn btn-sm btn-outline-warning">Düzenle</a>
+                                <button class="btn btn-sm btn-outline-danger" onclick="confirmDelete(@blog.Id)">Sil</button>
+                            }
+                        }
                     </div>
-
                 </div>
             </div>
-           
+        </div>
+    }
+</div>
 
+
+<form id="deleteForm" method="post" asp-controller="Blog" asp-action="DeleteConfirmed">
+    <input type="hidden" name="id" id="deleteBlogId" />
+    <input type="hidden" name="returnUrl" id="deleteReturnUrl" />
+</form>
+
+@section Scripts {
+    <script>
+        function confirmDelete(blogId) {
+            Swal.fire({
+                title: 'Emin misiniz?',
+                text: "Bu blog silinecek!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Evet, sil!',
+                cancelButtonText: 'Vazgeç'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById("deleteBlogId").value = blogId;
+                    document.getElementById("deleteReturnUrl").value = window.location.pathname + window.location.search;
+                    document.getElementById("deleteForm").submit();
+                }
+            });
         }
-    </div>
+    </script>
 }

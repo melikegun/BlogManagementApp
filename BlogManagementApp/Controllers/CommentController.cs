@@ -1,37 +1,54 @@
-﻿using BlogManagementApp.Data;
-using BlogManagementApp.Models;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using BlogManagementApp.Interfaces;
+using BlogManagementApp.Models;
 
 namespace BlogManagementApp.Controllers
 {
     [Authorize]
     public class CommentController : Controller
     {
-        private readonly ApplicationDbContext _context;
+        private readonly ICommentService _commentService;
         private readonly UserManager<User> _userManager;
 
-        public CommentController(ApplicationDbContext context, UserManager<User> userManager)
+        public CommentController(ICommentService commentService, UserManager<User> userManager)
         {
-            _context = context;
+            _commentService = commentService;
             _userManager = userManager;
         }
 
         [HttpPost]
-        public IActionResult Delete(int id)
+        [Authorize]
+        public async Task<IActionResult> Add(int blogPostId, string commentText)
         {
-            var comment = _context.Comments.FirstOrDefault(c => c.Id == id);
-            if (comment == null || comment.UserId != _userManager.GetUserId(User))
+            if (string.IsNullOrWhiteSpace(commentText))
             {
-                return Forbid();
+                TempData["Error"] = "Yorum boş olamaz.";
+                return RedirectToAction("Details", "Blog", new { id = blogPostId });
             }
 
-            int blogPostId = comment.BlogPostId;
-            _context.Comments.Remove(comment);
-            _context.SaveChanges();
+            var comment = new Comment
+            {
+                BlogPostId = blogPostId,
+                Text = commentText,
+                UserId = _userManager.GetUserId(User),
+                CreatedAt = DateTime.Now
+            };
 
+            await _commentService.AddCommentAsync(comment);
+            TempData["Success"] = "Yorum başarıyla eklendi.";
             return RedirectToAction("Details", "Blog", new { id = blogPostId });
+        }
+
+
+        [HttpPost]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var userId = _userManager.GetUserId(User);
+            await _commentService.DeleteAsync(id, userId);
+
+            return RedirectToAction("Index", "Blog");
         }
     }
 }

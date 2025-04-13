@@ -7,7 +7,7 @@ namespace BlogManagementApp.Models
     {
         public int Id { get; set; }
 
-        [Required]
+        [Required(ErrorMessage = "Kategori adı boş bırakılamaz.")]
         public string Name { get; set; }
 
         [ValidateNever]

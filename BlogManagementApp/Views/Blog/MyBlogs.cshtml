@@ -1,0 +1,61 @@
+﻿@model List<BlogManagementApp.Models.BlogPost>
+@{
+    ViewData["Title"] = "Benim Bloglarım";
+}
+
+<h2 class="mb-4">Bloglarım</h2>
+
+@if (!Model.Any())
+{
+    <p>Henüz bir blog yazısı oluşturmadınız.</p>
+}
+else
+{
+    <div class="row">
+        @foreach (var blog in Model)
+        {
+            <div class="col-md-4 mb-3">
+                <div class="card h-100">
+                    @if (!string.IsNullOrEmpty(blog.ImageUrl))
+                    {
+                        <img src="@blog.ImageUrl" class="card-img-top" style="height: 180px; object-fit: cover;" />
+                    }
+                    <div class="card-body">
+                        <h5 class="card-title">@blog.Title</h5>
+                        <p class="card-text">@blog.Content.Substring(0, Math.Min(100, blog.Content.Length))...</p>
+                        <a asp-action="Details" asp-route-id="@blog.Id" class="btn btn-outline-primary btn-sm">Detay</a>
+                        <a asp-action="Edit" asp-route-id="@blog.Id" class="btn btn-outline-secondary btn-sm ms-1">Düzenle</a>
+                        <button class="btn btn-outline-danger btn-sm ms-1" onclick="confirmDelete(@blog.Id)">Sil</button>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+}
+
+<form id="deleteForm" method="post" asp-controller="Blog" asp-action="DeleteConfirmed">
+    <input type="hidden" name="id" id="deleteBlogId" />
+    <input type="hidden" name="returnUrl" id="deleteReturnUrl" />
+</form>
+
+@section Scripts {
+    <script>
+        function confirmDelete(blogId) {
+            Swal.fire({
+                title: 'Emin misiniz?',
+                text: "Bu blog silinecek!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Evet, sil!',
+                cancelButtonText: 'Vazgeç'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById("deleteBlogId").value = blogId;
+                    document.getElementById("deleteReturnUrl").value = window.location.pathname + window.location.search;
+                    document.getElementById("deleteForm").submit();
+                }
+            });
+        }
+    </script>
+}

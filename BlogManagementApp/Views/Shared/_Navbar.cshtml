@@ -1,0 +1,57 @@
+﻿@using Microsoft.AspNetCore.Identity
+@using BlogManagementApp.Models
+@inject UserManager<User> UserManager
+@inject SignInManager<User> SignInManager
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+        <a class="navbar-brand" asp-controller="Home" asp-action="Index"> BlogApp</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarMain">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link" asp-controller="Blog" asp-action="Index">Bloglar</a>
+                </li>
+
+                @if (SignInManager.IsSignedIn(User))
+                {
+                    var user = await UserManager.GetUserAsync(User);
+
+                    // ADMIN'e özel linkler
+                    if (user != null && await UserManager.IsInRoleAsync(user, "Admin"))
+                    {
+                        <li class="nav-item"><a class="nav-link" asp-controller="Admin" asp-action="Index">Admin Panel</a></li>
+                        <li class="nav-item"><a class="nav-link" asp-controller="Category" asp-action="Index">Kategori Yönetimi</a></li>
+                        <li class="nav-item"><a class="nav-link" asp-controller="Admin" asp-action="Comments">Yorum Yönetimi</a></li>
+                    }
+                    <li class="nav-item">
+                        <a class="nav-link" asp-controller="Blog" asp-action="MyBlogs">Bloglarım</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-controller="Blog" asp-action="Create">Yeni Blog Yaz</a>
+                    </li>
+                }
+
+                else
+                {
+                    
+
+                    <li class="nav-item">
+                        <button id="themeToggle" class="btn btn-outline-light btn-sm ms-2">Light/Dark Tema</button>
+                    </li>
+                }
+
+
+                
+            </ul>
+
+            <!-- Sağda giriş-çıkış -->
+            <div class="d-flex align-items-center">
+                @await Html.PartialAsync("_LoginPartial")
+            </div>
+        </div>
+    </div>
+</nav>

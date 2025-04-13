@@ -2,207 +2,180 @@
 using Microsoft.AspNetCore.Authorization;
 using BlogManagementApp.Models;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
-using BlogManagementApp.Data;
+using BlogManagementApp.Interfaces;
+using BlogManagementApp.Services;
 
 namespace BlogManagementApp.Controllers
 {
     public class BlogController : Controller
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IBlogService _blogService;
+        private readonly ICommentService _commentService;
+        private readonly ICategoryService _categoryService;
         private readonly UserManager<User> _userManager;
+        private readonly IImageService _imageService;
 
-        public BlogController(ApplicationDbContext context, UserManager<User> userManager)
+        public BlogController(IBlogService blogService, ICommentService commentService, ICategoryService categoryService, UserManager<User> userManager, IImageService imageService)
         {
-            _context = context;
+            _blogService = blogService;
+            _commentService = commentService;
+            _categoryService = categoryService;
             _userManager = userManager;
-        }
-
-        [AllowAnonymous]
-        public IActionResult Index()
-        {
-            var blogPosts = _context.BlogPosts
-                .Include(b => b.Category)
-                .Include(b => b.User)
-                .OrderByDescending(b => b.PublishedDate)
-                .ToList();
-
-            return View(blogPosts);
+            _imageService = imageService;
         }
 
 
-        [AllowAnonymous]
-        public IActionResult Details(int id)
-        {
-            var blog = _context.BlogPosts
-                .Include(b => b.Category)
-                .Include(b => b.User)
-                .Include(b => b.Comments)
-                    .ThenInclude(c => c.User)
-                .FirstOrDefault(b => b.Id == id);
 
+        [AllowAnonymous]
+        public async Task<IActionResult> Index(int? categoryId)
+        {
+            var allBlogs = await _blogService.GetAllAsync();
+            var filteredBlogs = categoryId.HasValue
+                ? allBlogs.Where(b => b.CategoryId == categoryId).ToList()
+                : allBlogs;
+
+            var categories = await _categoryService.GetAllAsync();
+
+            var model = new BlogHomeViewModel
+            {
+                Categories = categories,
+                BlogPosts = filteredBlogs,
+                SelectedCategoryId = categoryId
+            };
+
+            return View(model);
+        }
+
+
+        [AllowAnonymous]
+        public async Task<IActionResult> Details(int id)
+        {
+            var blog = await _blogService.GetByIdAsync(id);
             if (blog == null) return NotFound();
+
+            ViewBag.PreviousBlog = await _blogService.GetPreviousBlogAsync(id);
+            ViewBag.NextBlog = await _blogService.GetNextBlogAsync(id);
 
             return View(blog);
         }
 
 
-
         [Authorize]
-        public IActionResult Create()
+        public async Task<IActionResult> Create()
         {
-            var categories = _context.Categories.ToList();
+            var categories = await _categoryService.GetAllAsync();
             ViewBag.Categories = new SelectList(categories, "Id", "Name");
             return View();
         }
 
         [HttpPost]
         [Authorize]
-        public async Task<IActionResult> Create(BlogPost model, IFormFile Image)
+        public async Task<IActionResult> Create(BlogPost model, IFormFile? Image)
         {
             if (ModelState.IsValid)
             {
                 if (Image != null && Image.Length > 0)
                 {
-                    var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads");
-                    Directory.CreateDirectory(uploadsFolder); // klasör yoksa oluştur
-
-                    var uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(Image.FileName);
-                    var filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-                    using (var fileStream = new FileStream(filePath, FileMode.Create))
-                    {
-                        await Image.CopyToAsync(fileStream);
-                    }
-
-                    model.ImageUrl = "/uploads/" + uniqueFileName;
+                    model.ImageUrl = await _imageService.UploadImageAsync(Image);
                 }
 
-                model.PublishedDate = DateTime.Now;
-                model.UserId = _userManager.GetUserId(User);
-
-                _context.BlogPosts.Add(model);
-                await _context.SaveChangesAsync();
-
+                await _blogService.CreateAsync(model, _userManager.GetUserId(User));
+                TempData["Success"] = "Blog başarıyla yayınlandı.";
                 return RedirectToAction("Index");
             }
 
-            var categories = _context.Categories.ToList();
+            var categories = await _categoryService.GetAllAsync();
             ViewBag.Categories = new SelectList(categories, "Id", "Name");
             return View(model);
         }
 
 
-
         [Authorize]
-        public IActionResult Edit(int id)
+        public async Task<IActionResult> Edit(int id)
         {
-            var blog = _context.BlogPosts.FirstOrDefault(b => b.Id == id);
-            if (blog == null || blog.UserId != _userManager.GetUserId(User))
-            {
-                return Forbid(); // veya return NotFound();
-            }
+            var blog = await _blogService.GetByIdAsync(id);
+            if (blog == null)
+                return NotFound();
 
-            var categories = _context.Categories.ToList();
-            ViewBag.Categories = new SelectList(categories, "Id", "Name", blog.CategoryId);
+            var currentUserId = _userManager.GetUserId(User);
+            var isAdmin = User.IsInRole("Admin");
 
+            if (blog.UserId != currentUserId && !isAdmin)
+                return Forbid();
+
+            ViewBag.Categories = new SelectList(await _categoryService.GetAllAsync(), "Id", "Name", blog.CategoryId);
             return View(blog);
         }
-
 
 
         [HttpPost]
         [Authorize]
         public async Task<IActionResult> Edit(BlogPost model, IFormFile? Image)
         {
-            var blog = _context.BlogPosts.FirstOrDefault(b => b.Id == model.Id);
-            if (blog == null || blog.UserId != _userManager.GetUserId(User))
-            {
-                return NotFound(); 
-            }
+            var existingBlog = await _blogService.GetByIdAsync(model.Id);
+            if (existingBlog == null)
+                return NotFound();
 
-            if (ModelState.IsValid)
-            {
-                blog.Title = model.Title;
-                blog.Content = model.Content;
-                blog.CategoryId = model.CategoryId;
+            var currentUserId = _userManager.GetUserId(User);
+            var isAdmin = User.IsInRole("Admin");
 
-                if (Image != null && Image.Length > 0)
-                {
-                    var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads");
-                    Directory.CreateDirectory(uploadsFolder);
-                    var uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(Image.FileName);
-                    var filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-                    using (var stream = new FileStream(filePath, FileMode.Create))
-                    {
-                        await Image.CopyToAsync(stream);
-                    }
-
-                    blog.ImageUrl = "/uploads/" + uniqueFileName;
-                }
-
-                _context.SaveChanges();
-                return RedirectToAction("Index");
-            }
-
-            var categories = _context.Categories.ToList();
-            ViewBag.Categories = new SelectList(categories, "Id", "Name", model.CategoryId);
-            return View(model);
-        }
-
-
-        [Authorize]
-        public IActionResult Delete(int id)
-        {
-            var blog = _context.BlogPosts
-                .Include(b => b.User)
-                .FirstOrDefault(b => b.Id == id);
-
-            if (blog == null || blog.UserId != _userManager.GetUserId(User))
-            {
+            if (existingBlog.UserId != currentUserId && !isAdmin)
                 return Forbid();
-            }
 
-            return View(blog);
-        }
-
-
-        [HttpPost, ActionName("Delete")]
-        [Authorize]
-        public IActionResult DeleteConfirmed(int id)
-        {
-            var blog = _context.BlogPosts.FirstOrDefault(b => b.Id == id);
-            if (blog == null || blog.UserId != _userManager.GetUserId(User))
+            if (!ModelState.IsValid)
             {
-                return Forbid();
+                ViewBag.Categories = new SelectList(await _categoryService.GetAllAsync(), "Id", "Name", model.CategoryId);
+                return View(model);
             }
 
-            _context.BlogPosts.Remove(blog);
-            _context.SaveChanges();
+            existingBlog.Title = model.Title;
+            existingBlog.Content = model.Content;
+            existingBlog.CategoryId = model.CategoryId;
+
+            if (Image != null && Image.Length > 0)
+                existingBlog.ImageUrl = await _imageService.UploadImageAsync(Image);
+
+            await _blogService.UpdateAsync(existingBlog);
             return RedirectToAction("Index");
         }
 
+
         [HttpPost]
-        [Authorize]
-        public async Task<IActionResult> AddComment(int blogPostId, string commentText)
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteConfirmed(int id, string? returnUrl = null)
         {
-            var comment = new Comment
+            var blog = await _blogService.GetByIdAsync(id);
+            var currentUserId = _userManager.GetUserId(User);
+            var isAdmin = User.IsInRole("Admin");
+
+            if (blog == null || (blog.UserId != currentUserId && !isAdmin))
+                return Forbid();
+
+            var comments = blog.Comments.ToList();
+            foreach (var comment in comments)
             {
-                BlogPostId = blogPostId,
-                Text = commentText,
-                UserId = _userManager.GetUserId(User),
-                CreatedAt = DateTime.Now
-            };
+                await _commentService.DeleteAsync(comment.Id, null);
+            }
 
-            _context.Comments.Add(comment);
-            await _context.SaveChangesAsync();
+            await _blogService.DeleteAsync(id);
+            TempData["Success"] = "Blog ve yorumlar başarıyla silindi.";
 
-            return RedirectToAction("Details", new { id = blogPostId });
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return Redirect(returnUrl);
+
+            return RedirectToAction("Index");
         }
 
 
+
+        [Authorize]
+        public async Task<IActionResult> MyBlogs()
+        {
+            var userId = _userManager.GetUserId(User);
+            var blogs = await _blogService.GetByUserIdAsync(userId);
+            return View(blogs);
+        }
 
 
     }

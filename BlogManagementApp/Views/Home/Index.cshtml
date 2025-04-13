@@ -1,8 +1,107 @@
-﻿@{
-    ViewData["Title"] = "Ana Sayfa";
+﻿@model List<BlogManagementApp.Models.BlogPost>
+@using Markdig
+
+@{
+    ViewData["Title"] = "Anasayfa";
+    var theme = Context.Request.Cookies["Theme"] ?? "light";
 }
 
-<div class="container mt-5">
-    <h1 class="text-center">Blog Yönetim Sistemine Hoş Geldin 💻</h1>
-    <p class="text-center">Melike Gün tarafından yapılmaktadır 🧠</p>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0"> Öne Çıkan Bloglar</h2>
+    <button class="btn btn-sm btn-outline-secondary" id="toggleTheme">Light/Dark Tema</button>
 </div>
+
+@if (Model.Any())
+{
+    <div id="blogCarousel" class="carousel slide mb-5 shadow-sm" data-bs-ride="carousel">
+        <div class="carousel-inner">
+            @for (int i = 0; i < Model.Count; i++)
+            {
+                var blog = Model[i];
+                <div class="carousel-item @(i == 0 ? "active" : "")">
+                    <img src="@blog.ImageUrl" class="d-block w-100" style="height: 400px; object-fit: cover;" />
+                    <div class="carousel-caption d-none d-md-block bg-dark bg-opacity-50 rounded p-3">
+                        <h5>@blog.Title</h5>
+                        <p>@(blog.Content.Length > 100 ? blog.Content[..100] + "..." : blog.Content)</p>
+                        <a class="btn btn-sm btn-light" asp-controller="Blog" asp-action="Details" asp-route-id="@blog.Id">Detay</a>
+                    </div>
+                </div>
+            }
+        </div>
+        <button class="carousel-control-prev" type="button" data-bs-target="#blogCarousel" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Önceki</span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#blogCarousel" data-bs-slide="next">
+            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Sonraki</span>
+        </button>
+    </div>
+}
+
+<!-- Son Bloglar -->
+<h3 class="mb-4"> Son Bloglar</h3>
+<div class="row">
+    @foreach (var blog in Model)
+    {
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 shadow-sm">
+                <img src="@Url.Content(blog.ImageUrl)" class="card-img-top" style="height: 180px; object-fit: cover;" />
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title">@blog.Title</h5>
+                    <p class="card-text">@blog.Content.Substring(0, Math.Min(blog.Content.Length, 100))...</p>
+                    <span class="badge bg-secondary mb-2">@blog.Category?.Name</span>
+                    <small class="text-muted">Yazar: @blog.User?.UserName</small>
+                    <div class="mt-auto">
+                        <a asp-controller="Blog" asp-action="Details" asp-route-id="@blog.Id" class="btn btn-outline-primary btn-sm mt-2">Detay</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<hr class="my-5" />
+
+<!-- MINI MARKDOWN REHBER -->
+<div class="card shadow-sm mb-5">
+    <div class="card-header bg-dark text-white">
+        <h5 class="mb-0"> Markdown Rehberi</h5>
+    </div>
+    <div class="card-body">
+        <p class="mb-3">Blog yazılarınızda aşağıdaki Markdown formatlarını kullanabilirsiniz:</p>
+
+        <ul>
+            <li>**Kalın** yazı → <code>**Kalın**</code></li>
+            <li>*İtalik* yazı → <code>*İtalik*</code></li>
+            <li>[Bağlantı](https://ornek.com) → <code>[Bağlantı](https://ornek.com)</code></li>
+            <li>- Liste öğesi → <code>- madde</code></li>
+            <li>`Kod bloğu` → <code>`Kod bloğu`</code></li>
+        </ul>
+
+        <div class="alert alert-info mt-4">
+            <strong>İpucu:</strong> İçeriğinizi daha etkili ve okunabilir hale getirmek için Markdown kullanabilirsiniz.
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Tema geçişi
+        document.getElementById("toggleTheme").addEventListener("click", () => {
+            const current = document.documentElement.getAttribute("data-bs-theme") || "light";
+            const newTheme = current === "light" ? "dark" : "light";
+            document.documentElement.setAttribute("data-bs-theme", newTheme);
+            document.cookie = `Theme=${newTheme}; path=/;`;
+        });
+
+        // Sayfa yüklenince çerezden temayı uygula
+        window.addEventListener("DOMContentLoaded", () => {
+            const theme = document.cookie.split('; ').find(row => row.startsWith('Theme='));
+            if (theme) {
+                const value = theme.split('=')[1];
+                document.documentElement.setAttribute("data-bs-theme", value);
+            }
+        });
+    </script>
+}

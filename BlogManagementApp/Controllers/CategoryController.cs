@@ -1,23 +1,23 @@
-﻿using BlogManagementApp.Data;
+﻿using Microsoft.AspNetCore.Mvc;
 using BlogManagementApp.Models;
+using BlogManagementApp.Interfaces;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
 
 namespace BlogManagementApp.Controllers
 {
-    [Authorize]
+    [Authorize(Roles = "Admin")]
     public class CategoryController : Controller
     {
-        private readonly ApplicationDbContext _context;
+        private readonly ICategoryService _categoryService;
 
-        public CategoryController(ApplicationDbContext context)
+        public CategoryController(ICategoryService categoryService)
         {
-            _context = context;
+            _categoryService = categoryService;
         }
 
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
-            var categories = _context.Categories.ToList();
+            var categories = await _categoryService.GetAllAsync();
             return View(categories);
         }
 
@@ -28,15 +28,57 @@ namespace BlogManagementApp.Controllers
         }
 
         [HttpPost]
-        public IActionResult Create(Category category)
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create(Category category)
         {
-            if (ModelState.IsValid)
-            {
-                _context.Categories.Add(category);
-                _context.SaveChanges();
-                return RedirectToAction("Index");
-            }
+            if (!ModelState.IsValid)
+                return View(category);
+
+            await _categoryService.CreateAsync(category);
+            TempData["Success"] = "Kategori başarıyla eklendi.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Edit(int id)
+        {
+            var category = await _categoryService.GetByIdAsync(id);
+            if (category == null) return NotFound();
+
             return View(category);
         }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(Category category)
+        {
+            if (!ModelState.IsValid)
+                return View(category);
+
+            await _categoryService.UpdateAsync(category);
+            TempData["Success"] = "Kategori başarıyla güncellendi.";
+            return RedirectToAction(nameof(Index));
+        }
+
+
+        [HttpPost, ActionName("Delete")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteConfirmed(int id)
+        {
+            var hasBlogs = await _categoryService.HasAnyBlogAsync(id);
+
+            if (hasBlogs)
+            {
+                TempData["Error"] = "❗ Bu kategoriye bağlı bloglar bulunduğu için silinemez.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            await _categoryService.DeleteAsync(id);
+            TempData["Success"] = "Kategori başarıyla silindi.";
+            return RedirectToAction(nameof(Index));
+        }
+
+
+
     }
 }

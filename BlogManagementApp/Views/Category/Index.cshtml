@@ -1,25 +1,70 @@
 ﻿@model List<BlogManagementApp.Models.Category>
 
 @{
-    ViewData["Title"] = "Kategoriler";
+    ViewData["Title"] = "Kategori Listesi";
 }
 
-<h2>Kategori Listesi</h2>
+<div class="container mt-4">
+    <h2 class="mb-4">Kategoriler</h2>
 
-<table class="table table-bordered">
-    <thead>
-        <tr>
-            <th>Adı</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var item in Model)
-        {
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success">@TempData["Success"]</div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">@TempData["Error"]</div>
+    }
+
+    <a class="btn btn-primary mb-3" asp-action="Create">+ Yeni Kategori</a>
+
+    <table class="table table-bordered table-hover">
+        <thead class="table-dark">
             <tr>
-                <td>@item.Name</td>
+                <th>Adı</th>
+                <th style="width: 180px;">İşlemler</th>
             </tr>
-        }
-    </tbody>
-</table>
+        </thead>
+        <tbody>
+            @foreach (var category in Model)
+            {
+                <tr>
+                    <td>@category.Name</td>
+                    <td>
+                        <a class="btn btn-sm btn-warning" asp-action="Edit" asp-route-id="@category.Id">Düzenle</a>
+                        <button class="btn btn-sm btn-danger ms-2" onclick="confirmDelete(@category.Id)">Sil</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
 
-<a asp-action="Create" class="btn btn-primary">Yeni Kategori Ekle</a>
+    <form id="deleteForm" method="post" asp-controller="Category" asp-action="Delete">
+        <input type="hidden" name="id" id="deleteCategoryId" />
+    </form>
+
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        function confirmDelete(id) {
+            Swal.fire({
+                title: 'Emin misiniz?',
+                text: 'Bu kategori silinecek!',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Evet, sil',
+                cancelButtonText: 'İptal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('deleteCategoryId').value = id;
+                    document.getElementById('deleteForm').submit();
+                }
+            });
+        }
+    </script>
+}

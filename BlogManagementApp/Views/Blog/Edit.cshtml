@@ -1,44 +1,64 @@
-﻿@model BlogManagementApp.Models.BlogPost
+﻿@model BlogPost
 
 @{
     ViewData["Title"] = "Blog Düzenle";
 }
 
-<h2>Blog Yazısını Düzenle</h2>
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
 
-<form asp-action="Edit" method="post" enctype="multipart/form-data">
-    <input type="hidden" asp-for="Id" />
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"> Blog Düzenle</h4>
+                </div>
 
-    <div class="mb-3">
-        <label asp-for="Title" class="form-label"></label>
-        <input asp-for="Title" class="form-control" />
-        <span asp-validation-for="Title" class="text-danger"></span>
+                <div class="card-body">
+                    <form asp-action="Edit" method="post" enctype="multipart/form-data">
+                        <input type="hidden" asp-for="Id" />
+
+                        <div class="mb-3">
+                            <label asp-for="Title" class="form-label fw-bold">Başlık</label>
+                            <input asp-for="Title" class="form-control" placeholder="Blog başlığını girin..." />
+                            <span asp-validation-for="Title" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Content" class="form-label fw-bold">İçerik</label>
+                            <textarea asp-for="Content" class="form-control" rows="6" placeholder="Blog içeriği..."></textarea>
+                            <span asp-validation-for="Content" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="CategoryId" class="form-label fw-bold">Kategori</label>
+                            <select asp-for="CategoryId" class="form-select" asp-items="ViewBag.Categories"></select>
+                            <span asp-validation-for="CategoryId" class="text-danger small"></span>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(Model.ImageUrl))
+                        {
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Mevcut Görsel</label><br />
+                                <img src="@Model.ImageUrl" class="rounded border" width="100%" style="max-width: 350px;" />
+                            </div>
+                        }
+
+                        <div class="mb-3">
+                            <label for="Image" class="form-label fw-bold">Yeni Görsel Yükle</label>
+                            <input type="file" name="Image" class="form-control" />
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <button type="submit" class="btn btn-success">Güncelle</button>
+                            <a asp-action="Index" class="btn btn-outline-secondary">İptal</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+        </div>
     </div>
-
-    <div class="mb-3">
-        <label asp-for="Content" class="form-label"></label>
-        <textarea asp-for="Content" class="form-control" rows="6"></textarea>
-        <span asp-validation-for="Content" class="text-danger"></span>
-    </div>
-
-    <div class="mb-3">
-        <label asp-for="CategoryId" class="form-label">Kategori</label>
-        <select asp-for="CategoryId" asp-items="ViewBag.Categories" class="form-select"></select>
-    </div>
-
-    <div class="mb-3">
-        <label class="form-label">Görsel</label><br />
-        @if (!string.IsNullOrEmpty(Model.ImageUrl))
-        {
-            <img src="@Model.ImageUrl" class="img-thumbnail mb-2" style="max-height: 150px;" />
-
-            <br />
-        }
-        <input type="file" name="Image" class="form-control" />
-    </div>
-
-    <button type="submit" class="btn btn-primary">Kaydet</button>
-</form>
+</div>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />

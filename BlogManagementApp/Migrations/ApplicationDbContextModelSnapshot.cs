@@ -45,7 +45,8 @@ namespace BlogManagementApp.Migrations
 
                     b.Property<string>("Title")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("UserId")
                         .IsRequired()
@@ -149,10 +150,6 @@ namespace BlogManagementApp.Migrations
 
                     b.Property<bool>("PhoneNumberConfirmed")
                         .HasColumnType("bit");
-
-                    b.Property<string>("Role")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("nvarchar(max)");
@@ -342,7 +339,7 @@ namespace BlogManagementApp.Migrations
                         .IsRequired();
 
                     b.HasOne("BlogManagementApp.Models.User", "User")
-                        .WithMany()
+                        .WithMany("Comments")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -416,6 +413,8 @@ namespace BlogManagementApp.Migrations
             modelBuilder.Entity("BlogManagementApp.Models.User", b =>
                 {
                     b.Navigation("BlogPosts");
+
+                    b.Navigation("Comments");
                 });
 #pragma warning restore 612, 618
         }

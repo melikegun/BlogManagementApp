@@ -1,0 +1,108 @@
+﻿@model BlogManagementApp.ViewModels.AdminDashboardViewModel
+@using System.Linq
+
+
+@{
+    ViewData["Title"] = "Admin Paneli";
+}
+
+<div class="container mt-4">
+    <h2 class="mb-4"> Yönetim Paneli</h2>
+
+    <!-- İstatistik Kutuları -->
+    <div class="row text-white mb-4">
+        <div class="col-md-4">
+            <div class="card bg-primary shadow-sm">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Toplam Kullanıcı</h5>
+                    <h2 class="fw-bold">@Model.TotalUsers</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mt-3 mt-md-0">
+            <div class="card bg-success shadow-sm">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Toplam Blog</h5>
+                    <h2 class="fw-bold">@Model.TotalBlogs</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mt-3 mt-md-0">
+            <div class="card bg-warning shadow-sm">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Toplam Yorum</h5>
+                    <h2 class="fw-bold">@Model.TotalComments</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Son Yorumlar -->
+    <div class="card shadow-sm mt-4">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0">En Son Yorumlar</h5>
+        </div>
+        <div class="card-body">
+            @if (Model.RecentComments != null && Model.RecentComments.Any())
+            {
+                <table class="table table-striped align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Kullanıcı</th>
+                            <th>Yorum</th>
+                            <th>Blog</th>
+                            <th>Tarih</th>
+                            <th>İşlem</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var comment in Model.RecentComments)
+                        {
+                            <tr>
+                                <td>@comment.User?.UserName</td>
+                                <td>@(comment.Text.Length > 50 ? comment.Text[..50] + "..." : comment.Text)</td>
+                                <td>@comment.BlogPost?.Title</td>
+                                <td>@comment.CreatedAt.ToShortDateString()</td>
+                                <td>
+                                    <button class="btn btn-sm btn-danger" onclick="confirmDelete(@comment.Id)">Sil</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <div class="text-muted">Henüz yorum yapılmamış.</div>
+            }
+        </div>
+    </div>
+
+    <!-- Silme formu -->
+    <form id="deleteForm" method="post" asp-action="DeleteComment">
+        <input type="hidden" name="id" id="deleteCommentId" />
+    </form>
+
+    @section Scripts {
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        <script>
+            function confirmDelete(id) {
+                Swal.fire({
+                    title: 'Yorumu silmek istiyor musunuz?',
+                    text: "Bu işlem geri alınamaz!",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Evet, sil!',
+                    cancelButtonText: 'Vazgeç'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        document.getElementById('deleteCommentId').value = id;
+                        document.getElementById('deleteForm').submit();
+                    }
+                });
+            }
+        </script>
+    }
+</div>

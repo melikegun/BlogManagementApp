@@ -4,10 +4,11 @@ namespace BlogManagementApp.ViewModels
 {
     public class LoginViewModel
     {
-        [Required]
+        [Required(ErrorMessage = "Kullanıcı adı gerekli.")]
         public string UserName { get; set; }
 
-        [Required, DataType(DataType.Password)]
+        [Required(ErrorMessage = "Şifre gerekli.")]
+        [DataType(DataType.Password)]
         public string Password { get; set; }
     }
 }

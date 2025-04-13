@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using BlogManagementApp.Models;
+using System.Reflection.Emit;
 
 namespace BlogManagementApp.Data
 {
@@ -20,8 +21,10 @@ namespace BlogManagementApp.Data
                 .HasOne(c => c.BlogPost)
                 .WithMany(b => b.Comments)
                 .HasForeignKey(c => c.BlogPostId)
-                .OnDelete(DeleteBehavior.Restrict); // 💥 işte bu çözüm
+                .OnDelete(DeleteBehavior.Restrict);
         }
+
+
 
 
     }

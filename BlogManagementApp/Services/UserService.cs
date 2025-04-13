@@ -1,48 +1,71 @@
-﻿using BlogManagementApp.Data;
-using BlogManagementApp.Models;
+﻿using BlogManagementApp.Models;
+using BlogManagementApp.ViewModels;
 using BlogManagementApp.Interfaces;
-using Microsoft.EntityFrameworkCore;
-
+using Microsoft.AspNetCore.Identity;
 
 namespace BlogManagementApp.Services
 {
     public class UserService : IUserService
     {
-        private readonly ApplicationDbContext _context;
+        private readonly UserManager<User> _userManager;
+        private readonly SignInManager<User> _signInManager;
 
-        public UserService(ApplicationDbContext context)
+        public UserService(UserManager<User> userManager, SignInManager<User> signInManager)
         {
-            _context = context;
+            _userManager = userManager;
+            _signInManager = signInManager;
         }
 
-        public async Task<User> RegisterAsync(string username, string email, string password)
+        public async Task<User?> RegisterAsync(RegisterViewModel model)
         {
             var user = new User
             {
-                UserName = username,
-                Email = email,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
-                Role = "User"
+                UserName = model.UserName,
+                Email = model.Email
             };
 
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
-            return user;
+            var result = await _userManager.CreateAsync(user, model.Password);
+
+            if (result.Succeeded)
+            {
+                await _userManager.AddToRoleAsync(user, "User");
+                await _signInManager.SignInAsync(user, isPersistent: false);
+                return user;
+            }
+
+            return null;
         }
 
-        public async Task<User> LoginAsync(string username, string password)
+        public async Task<LoginResultViewModel> LoginAsync(LoginViewModel model)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserName == username);
-            if (user == null || !BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
-                return null;
+            var user = await _userManager.FindByNameAsync(model.UserName);
 
-            return user;
+            if (user != null)
+            {
+                var result = await _signInManager.PasswordSignInAsync(user, model.Password, false, false);
+                if (result.Succeeded)
+                {
+                    var isAdmin = await _userManager.IsInRoleAsync(user, "Admin");
+                    return new LoginResultViewModel
+                    {
+                        User = user,
+                        IsSuccess = true,
+                        IsAdmin = isAdmin
+                    };
+                }
+            }
+
+            return new LoginResultViewModel
+            {
+                User = null,
+                IsSuccess = false,
+                IsAdmin = false
+            };
         }
 
-        public Task LogoutAsync()
+        public async Task LogoutAsync()
         {
-            // Bu kısım ileride cookie/session yönetimi eklenince yazılacak
-            return Task.CompletedTask;
+            await _signInManager.SignOutAsync();
         }
     }
 }

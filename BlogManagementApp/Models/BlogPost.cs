@@ -6,13 +6,20 @@ namespace BlogManagementApp.Models
     public class BlogPost
     {
         public int Id { get; set; }
-        [Required]
+
+        [Required(ErrorMessage = "Başlık alanı zorunludur.")]
+        [StringLength(100, ErrorMessage = "Başlık en fazla 100 karakter olabilir.")]
         public string Title { get; set; }
-        [Required]
+
+        [Required(ErrorMessage = "İçerik alanı boş bırakılamaz.")]
         public string Content { get; set; }
+
         public DateTime PublishedDate { get; set; }
 
+        [Required(ErrorMessage = "Kategori seçilmesi zorunludur.")]
+        [Range(1, int.MaxValue, ErrorMessage = "Lütfen geçerli bir kategori seçin.")]
         public int CategoryId { get; set; }
+
         [ValidateNever]
         public Category Category { get; set; }
 
@@ -24,7 +31,6 @@ namespace BlogManagementApp.Models
 
         public string? ImageUrl { get; set; }
 
-        public ICollection<Comment> Comments { get; set; }
-
+        public ICollection<Comment>? Comments { get; set; }
     }
 }

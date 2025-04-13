@@ -1,0 +1,59 @@
+﻿@model List<Comment>
+@{
+    ViewData["Title"] = "Yorum Yönetimi";
+}
+
+<h2 class="mb-4">Yorumlar</h2>
+
+<table class="table table-bordered table-hover">
+    <thead class="table-dark">
+        <tr>
+            <th>Kullanıcı</th>
+            <th>Blog Başlığı</th>
+            <th>Yorum</th>
+            <th>Tarih</th>
+            <th>İşlem</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var comment in Model)
+        {
+            <tr>
+                <td>@comment.User?.UserName</td>
+                <td>@comment.BlogPost?.Title</td>
+                <td>@comment.Text</td>
+                <td>@comment.CreatedAt.ToShortDateString()</td>
+                <td>
+                    <button class="btn btn-sm btn-danger" onclick="confirmDelete(@comment.Id)">Sil</button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<form id="deleteForm" method="post" asp-action="DeleteComment">
+    <input type="hidden" name="id" id="deleteCommentId" />
+</form>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        function confirmDelete(id) {
+            Swal.fire({
+                title: 'Yorumu silmek istiyor musunuz?',
+                text: "Bu işlem geri alınamaz!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Evet, sil!',
+                cancelButtonText: 'Vazgeç'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('deleteCommentId').value = id;
+                    document.getElementById('deleteForm').submit();
+                }
+            });
+        }
+    </script>
+}
